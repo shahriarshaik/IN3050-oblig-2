@@ -138,3 +138,104 @@ plot_decision_regions(X_train, t2_train, cl)
 
 
 
+etas = [0.01, 0.05, 0.1, 0.5, 1.0]
+#etas = np.linspace(0.01, 10.0, num=1000)
+etas = np.linspace(0.01, 1.4, num=200) #best hittil
+
+#epochs = [10, 20, 30, 50, 100, 200, 300, 500, 1000]
+epochs = [10, 20, 30, 50, 100, 200]
+epochs = np.linspace(0, 200, num=10, dtype=int)
+print(epochs)
+
+results = []
+
+for eta in etas:
+    for epoch in epochs:
+        cl = NumpyLinRegClass()
+        cl.fit(X_train, t2_train, eta=eta, epochs=epoch)
+        acc = accuracy(cl.predict(X_val), t2_val)
+        results.append((acc, eta, epoch))
+        
+results.sort(reverse=True)
+best_acc, best_eta, best_epoch = results[0]
+
+#print the top 5 results
+print("Top 5 results:")
+for acc, eta, epoch in results[:5]:
+    print("eta={}, epochs={}, accuracy={}".format(eta, epoch, acc))
+    
+
+print("Accuracy for each set of hyperparameters:")
+for acc, eta, epoch in results:
+    #print("eta={}, epochs={}, accuracy={}".format(eta, epoch, acc))
+    break
+    
+print("\nBest hyperparameters:")
+print("eta={}, epochs={}, accuracy={}".format(best_eta, best_epoch, best_acc))
+
+cl = NumpyLinRegClass()
+cl.fit(X_train, t2_train, eta=best_eta, epochs=best_epoch)
+plot_decision_regions(X_train, t2_train, cl)
+
+
+
+
+
+
+class NumpyLinRegClass(NumpyClassifier):
+
+    def __init__(self, bias=-1):
+        self.bias = bias
+    
+    def fit(self, X_train, t_train, eta=0.1, epochs=10):
+        """X_train is a Nxm matrix, N data points, m features
+        t_train is a vector of length N,
+        the target values for the training data"""
+        
+        if self.bias:
+            X_train = add_bias(X_train, self.bias)
+        
+        (N, m) = X_train.shape
+        
+        self.weights = weights = np.zeros(m)
+        self.losses = []  # to store losses at each epoch
+        self.accuracies = []  # to store accuracies at each epoch
+        
+        for e in range(epochs):
+            ys = X_train @ weights
+            loss = ((ys - t_train)**2).mean()  # calculate mean squared error loss
+            accuracy1 = accuracy((ys > 0.5).astype(int), t_train)  # calculate accuracy
+            
+            weights -= eta / N *  X_train.T @ (ys - t_train)  # update weights
+            
+            self.losses.append(loss)
+            self.accuracies.append(accuracy1)
+            
+            print(f"Epoch {e+1}: Loss={loss:.4f}, Accuracy={accuracy1:.4f}")
+
+import matplotlib.pyplot as plt
+
+# Normalize the data
+mean = np.mean(X_train, axis=0)
+std = np.std(X_train, axis=0)
+X_train_normalized = (X_train - mean) / std
+
+
+# Train the classifier with the best hyperparameters
+cl = NumpyLinRegClass()
+cl.fit(X_train_normalized, t2_train, eta=best_eta, epochs=best_epoch)
+
+# Plot the loss and accuracy as a function of the number of epochs
+fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(12, 5))
+
+ax[0].plot(cl.losses)
+ax[0].set_xlabel('Epoch')
+ax[0].set_ylabel('Loss')
+ax[0].set_title('Training loss')
+
+ax[1].plot(cl.accuracies)
+ax[1].set_xlabel('Epoch')
+ax[1].set_ylabel('Accuracy')
+ax[1].set_title('Training accuracy')
+
+plt.show()
