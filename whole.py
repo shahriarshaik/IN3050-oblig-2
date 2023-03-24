@@ -239,3 +239,238 @@ ax[1].set_ylabel('Accuracy')
 ax[1].set_title('Training accuracy')
 
 plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+from sklearn.model_selection import train_test_split
+
+
+
+
+class NumpyLogReg(NumpyClassifier):
+
+    def __init__(self, bias=-1, scaler=None):
+        self.bias = bias
+        self.scaler = scaler
+        self.losses = []
+        self.accuracies = []
+        self.val_losses = []
+        self.val_accuracies = []
+    
+    def sigmoid(self, z):
+        return 1 / (1 + np.exp(-z))
+
+    def fit(self, X_train, t_train, eta=0.1, epochs=10, X_val=None, t_val=None, tol=1e-5, n_epochs_no_update=5):
+        if self.bias:
+            X_train = add_bias(X_train, self.bias)
+            if X_val is not None:
+                X_val = add_bias(X_val, self.bias)
+
+        (N, m) = X_train.shape
+        self.weights = weights = np.zeros(m)
+        no_update_count = 0
+        last_loss = float("inf")
+
+        for e in range(epochs):
+            y = self.sigmoid(X_train @ weights)
+            weights -= eta / N * X_train.T @ (y - t_train)
+
+            # Calculate loss and accuracy at the end of each epoch
+            loss = -np.mean(t_train * np.log(y) + (1 - t_train) * np.log(1 - y))
+            self.losses.append(loss)
+            acc = np.mean((y > 0.5) == t_train)
+            self.accuracies.append(acc)
+
+            # Calculate loss and accuracy for validation set (if provided)
+            if X_val is not None and t_val is not None:
+                val_loss, val_acc = self._validation_loss_accuracy(X_val, t_val)
+                self.val_losses.append(val_loss)
+                self.val_accuracies.append(val_acc)
+
+            # Check for early stopping
+            if np.abs(last_loss - loss) < tol:
+                no_update_count += 1
+            else:
+                no_update_count = 0
+
+            if no_update_count >= n_epochs_no_update:
+                break
+
+            last_loss = loss
+
+        self.total_epochs = e + 1
+
+
+
+    def predict(self, X, threshold=0.5, apply_scaler=True, apply_bias=True):
+        prob = self.predict_probability(X, apply_scaler=apply_scaler, apply_bias=apply_bias)
+        return (prob > threshold).astype(int)
+
+
+
+    def predict_probability(self, X, apply_scaler=True, apply_bias=True):
+        if apply_scaler and self.scaler is not None:
+            X = self.scaler(X)
+    
+        if self.bias and apply_bias:
+            X = add_bias(X, self.bias)
+    
+        return self.sigmoid(X @ self.weights)
+    
+    def _validation_loss_accuracy(self, X_val, t_val):
+        y_val = self.sigmoid(X_val @ self.weights)
+        val_loss = -np.mean(t_val * np.log(y_val) + (1 - t_val) * np.log(1 - y_val))
+        val_acc = np.mean((y_val > 0.5) == t_val)
+        return val_loss, val_acc
+
+
+
+# Assuming X and t are the feature matrix and target labels
+X_train, X_val, t_train, t_val = train_test_split(X, t_multi, test_size=0.2, random_state=42)
+
+etas = np.linspace(0.01, 1.4, num=200)
+tols = [1e-4, 1e-5, 1e-6]
+scalers = [standard_scaler, min_max_scaler]
+
+best_acc = 0
+best_eta = None
+best_tol = None
+best_scaler = None
+best_clf = None
+
+for eta in etas:
+    for tol in tols:
+        for scaler in scalers:
+            X_train_scaled = scaler(X_train)
+            X_val_scaled = scaler(X_val)
+            cl = NumpyLogReg(scaler=scaler)
+            cl.fit(X_train_scaled, t_train, eta=eta, epochs=200, X_val=X_val_scaled, t_val=t_val, tol=tol)
+            
+            acc = np.mean(cl.predict(X_val_scaled) == t_val)
+            if acc > best_acc:
+                best_acc = acc
+                best_eta = eta
+                best_tol = tol
+                best_scaler = scaler.__name__
+                best_clf = cl
+
+
+
+print(f"Best hyperparameters found:\nScaler: {best_scaler}\neta: {best_eta}\ntol: {best_tol}\naccuracy: {best_acc}")
+
+
+fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(12, 5))
+
+ax[0].plot(best_clf.losses, label='Training loss')
+ax[0].plot(best_clf.val_losses, label='Validation loss')
+ax[0].set_xlabel('Epoch')
+ax[0].set_ylabel('Loss')
+ax[0].set_title('Training and Validation loss')
+ax[0].legend()
+
+ax[1].plot(best_clf.accuracies, label='Training accuracy')
+ax[1].plot(best_clf.val_accuracies, label='Validation accuracy')
+ax[1].set_xlabel('Epoch')
+ax[1].set_ylabel('Accuracy')
+ax[1].set_title('Training and Validation accuracy')
+ax[1].legend()
+
+plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+class MLPBinaryLinRegClass(NumpyClassifier):
+    """A multi-layer neural network with one hidden layer"""
+    
+    def __init__(self, bias=-1, dim_hidden = 6):
+        """Intialize the hyperparameters"""
+        self.bias = bias
+        self.dim_hidden = dim_hidden
+        
+        def logistic(x):
+            return 1/(1+np.exp(-x))
+        self.activ = logistic
+        
+        def logistic_diff(y):
+            return y * (1 - y)
+        self.activ_diff = logistic_diff
+        
+    def fit(self, X_train, t_train, eta=0.001, epochs = 100):
+        """Intialize the weights. Train *epochs* many epochs.
+        
+        X_train is a Nxm matrix, N data points, m features
+        t_train is a vector of length N of targets values for the training data, 
+        where the values are 0 or 1.
+        """
+        self.eta = eta
+        
+        T_train = t_train.reshape(-1,1)
+            
+        dim_in = X_train.shape[1] 
+        dim_out = T_train.shape[1]
+        
+        # Itilaize the wights
+        self.weights1 = (np.random.rand(
+            dim_in + 1, 
+            self.dim_hidden) * 2 - 1)/np.sqrt(dim_in)
+        self.weights2 = (np.random.rand(
+            self.dim_hidden+1, 
+            dim_out) * 2 - 1)/np.sqrt(self.dim_hidden)
+        X_train_bias = add_bias(X_train, self.bias)
+        
+        for e in range(epochs):
+            # One epoch
+            hidden_outs, outputs = self.forward(X_train_bias)
+            # The forward step
+            out_deltas = (outputs - T_train)
+            # The delta term on the output node
+            hiddenout_diffs = out_deltas @ self.weights2.T
+            # The delta terms at the output of the jidden layer
+            hiddenact_deltas = (hiddenout_diffs[:, 1:] * 
+                                self.activ_diff(hidden_outs[:, 1:]))  
+            # The deltas at the input to the hidden layer
+            self.weights2 -= self.eta * hidden_outs.T @ out_deltas
+            self.weights1 -= self.eta * X_train_bias.T @ hiddenact_deltas 
+            # Update the weights
+            
+    def forward(self, X):
+        """Perform one forward step. 
+        Return a pair consisting of the outputs of the hidden_layer
+        and the outputs on the final layer"""
+        hidden_activations = self.activ(X @ self.weights1)
+        hidden_outs = add_bias(hidden_activations, self.bias)
+        outputs = hidden_outs @ self.weights2
+        return hidden_outs, outputs
+    
+    def predict(self, X):
+        """Predict the class for the mebers of X"""
+        Z = add_bias(X, self.bias)
+        forw = self.forward(Z)[1]
+        score= forw[:, 0]
+        return (score > 0.5)
+
