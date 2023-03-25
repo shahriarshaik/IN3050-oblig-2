@@ -1,0 +1,31 @@
+
+
+
+
+
+t2_train: hvis klassen er større enn 3 er de true ellers false i binæretall.
+bruker under plotting for å få en farge for hver klasse. (gul for 3 og 4 og lilla for )
+[1 0 1 0 1 1 0 0 1 1 0 0 0 1 0 1 0 1 0 1 0 0 0 0 0 0 0 0 1 0]
+t2_val: samme som t2_train
+t2_test: samme som t2_train
+
+
+
+
+add_bias: legger til en kolonne med 1 eller -1  for å kunne regne ut bias
+eks: 
+
+med:
+[[-1.          1.70344245 -0.05919225]
+ [-1.          7.06137706  1.14833313]
+ [-1.          1.28467907  0.53969073]]
+
+uten: 
+[[ 1.70344245 -0.05919225]
+ [ 7.06137706  1.14833313]
+ [ 1.28467907  0.53969073]]
+
+
+
+what does it mean to fit the linear regression model on the given training data
+
