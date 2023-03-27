@@ -6,7 +6,9 @@
 t2_train: hvis klassen er større enn 3 er de true ellers false i binæretall.
 bruker under plotting for å få en farge for hver klasse. (gul for 3 og 4 og lilla for )
 [1 0 1 0 1 1 0 0 1 1 0 0 0 1 0 1 0 1 0 1 0 0 0 0 0 0 0 0 1 0]
+
 t2_val: samme som t2_train
+
 t2_test: samme som t2_train
 
 
@@ -27,5 +29,34 @@ uten:
 
 
 
-what does it mean to fit the linear regression model on the given training data
+NumpyLinRegClass klassen:
+
+fit: trener en linær regresjonsmodell ved å  justere vektene for å minimere kostfunksjonen.
+
+predict: returnerer en prediksjon for en gitt input.
+
+
+
+
+
+
+alle dataset vi har: 
+
+
+1. 
+(X_train, t2_train) dette er OG datasettet
+
+2. 
+(X_train_normalized, t2_train) dette er datasettet normalisert
+
+3.
+(X_train_scaled, t2_train) dette er datasettet skalert
+X_test_scaled: dette er test datasettet skalert
+
+test datasettet brukes til:
+1. å teste modellen
+2. å finne optimal hyperparameter
+3. å finne optimal modell
+
+4.
 
